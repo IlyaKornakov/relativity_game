@@ -24,7 +24,7 @@ export class World {
   private async loadModels() {
     return Promise.all([
       new Promise<void>((resolve) => {
-        this.loader.load('/models/building.glb', (gltf) => {
+        this.loader.load(import.meta.env.BASE_URL + 'models/building.glb', (gltf) => {
           this.buildingModel = gltf.scene;
           const box = new THREE.Box3().setFromObject(gltf.scene);
           const size = box.getSize(new THREE.Vector3());
@@ -34,7 +34,7 @@ export class World {
         });
       }),
       new Promise<void>((resolve) => {
-        this.loader.load('/models/CesiumMilkTruck.glb', (gltf) => {
+        this.loader.load(import.meta.env.BASE_URL + 'models/CesiumMilkTruck.glb', (gltf) => {
           this.buggyModel = gltf.scene;
           const box = new THREE.Box3().setFromObject(gltf.scene);
           const size = box.getSize(new THREE.Vector3());
@@ -74,13 +74,13 @@ export class World {
   }
 
   private buildCity() {
-    const roadTex = this.loadTexture('/textures/road.png', 1, 500);
-    const grassTex = this.loadTexture('/textures/grass.png', 500, 500);
+    const roadTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/road.png', 1, 500);
+    const grassTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/grass.png', 500, 500);
     
     // Billboard Textures
-    const geminiTex = this.loadTexture('/textures/gemini.png', 1, 1);
-    const chatgptTex = this.loadTexture('/textures/chatgpt.png', 1, 1);
-    const claudeTex = this.loadTexture('/textures/claude.png', 1, 1);
+    const geminiTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/gemini.png', 1, 1);
+    const chatgptTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/chatgpt.png', 1, 1);
+    const claudeTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/claude.png', 1, 1);
 
     const groundGeo = new THREE.PlaneGeometry(10000, 10000, 200, 200);
     const groundMat = new THREE.MeshStandardMaterial({ map: grassTex });
@@ -109,7 +109,7 @@ export class World {
 
     // Add Huge Animated Video Billboard
     this.videoElement = document.createElement('video');
-    this.videoElement.src = '/textures/video.mp4';
+    this.videoElement.src = import.meta.env.BASE_URL + 'textures/video.mp4';
     this.videoElement.loop = true;
     this.videoElement.muted = true;
     this.videoElement.play().catch(e => console.warn("Video autoplay blocked", e));
