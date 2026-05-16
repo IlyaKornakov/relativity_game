@@ -82,7 +82,7 @@ export class World {
   private buildCity() {
     // Setup Environment & Lighting
     this.scene.background = new THREE.Color(0x87ceeb);
-    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.002);
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0002);
 
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     this.scene.add(this.ambientLight);
@@ -92,7 +92,7 @@ export class World {
 
     // Setup Sun
     const sunGeo = new THREE.SphereGeometry(200, 32, 32);
-    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffee, fog: false });
     sunMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
     this.sunMesh = new THREE.Mesh(sunGeo, sunMat);
     this.sunMesh.frustumCulled = false;
@@ -100,7 +100,7 @@ export class World {
 
     // Setup Moon
     const moonGeo = new THREE.SphereGeometry(150, 32, 32);
-    const moonMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, fog: false });
     moonMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
     this.moonMesh = new THREE.Mesh(moonGeo, moonMat);
     this.moonMesh.frustumCulled = false;
