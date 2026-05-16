@@ -149,7 +149,7 @@ export class World {
     const videoTex = new THREE.VideoTexture(this.videoElement);
     videoTex.colorSpace = THREE.SRGBColorSpace;
     const videoGeo = new THREE.PlaneGeometry(400, 225, 100, 100); 
-    const videoMat = new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide });
+    const videoMat = new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide, fog: false });
     videoMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
     
     this.videoMesh = new THREE.Mesh(videoGeo, videoMat);
@@ -220,7 +220,7 @@ export class World {
     const billboardGeo = new THREE.PlaneGeometry(1, 1, 20, 20);
     const addBillboardType = (tex: THREE.Texture, transforms: THREE.Matrix4[]) => {
         if (transforms.length === 0) return;
-        const mat = new THREE.MeshBasicMaterial({ map: tex });
+        const mat = new THREE.MeshBasicMaterial({ map: tex, fog: false });
         mat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
         const im = new THREE.InstancedMesh(billboardGeo, mat, transforms.length);
         im.frustumCulled = false;
