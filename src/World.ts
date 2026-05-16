@@ -14,6 +14,12 @@ export class World {
   public videoElement: HTMLVideoElement | null = null;
   public videoMesh: THREE.Mesh | null = null;
 
+  // Celestial & Lighting
+  private sunMesh: THREE.Mesh | null = null;
+  private moonMesh: THREE.Mesh | null = null;
+  private ambientLight: THREE.AmbientLight | null = null;
+  private dirLight: THREE.DirectionalLight | null = null;
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.loadModels().then(() => {
@@ -74,6 +80,32 @@ export class World {
   }
 
   private buildCity() {
+    // Setup Environment & Lighting
+    this.scene.background = new THREE.Color(0x87ceeb);
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.002);
+
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    this.scene.add(this.ambientLight);
+
+    this.dirLight = new THREE.DirectionalLight(0xffffee, 1.5);
+    this.scene.add(this.dirLight);
+
+    // Setup Sun
+    const sunGeo = new THREE.SphereGeometry(200, 32, 32);
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+    sunMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
+    this.sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    this.sunMesh.frustumCulled = false;
+    this.scene.add(this.sunMesh);
+
+    // Setup Moon
+    const moonGeo = new THREE.SphereGeometry(150, 32, 32);
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+    moonMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
+    this.moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    this.moonMesh.frustumCulled = false;
+    this.scene.add(this.moonMesh);
+
     const roadTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/road.png', 1, 500);
     const grassTex = this.loadTexture(import.meta.env.BASE_URL + 'textures/grass.png', 500, 500);
     
@@ -116,13 +148,12 @@ export class World {
     
     const videoTex = new THREE.VideoTexture(this.videoElement);
     videoTex.colorSpace = THREE.SRGBColorSpace;
-    // We make it highly subdivided so the geometric distortion (Terrell rotation) is extremely obvious
     const videoGeo = new THREE.PlaneGeometry(400, 225, 100, 100); 
     const videoMat = new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.DoubleSide });
     videoMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
     
     this.videoMesh = new THREE.Mesh(videoGeo, videoMat);
-    this.videoMesh.position.set(0, 150, -1200); // End of the street
+    this.videoMesh.position.set(0, 150, -1200); 
     this.videoMesh.frustumCulled = false;
     this.scene.add(this.videoMesh);
 
@@ -136,7 +167,6 @@ export class World {
       const z = (Math.random() - 0.5) * 2000;
 
       if (Math.abs(x) < 25 || Math.abs(z) < 25) continue; 
-      // Don't place buildings directly in front of the giant video billboard
       if (Math.abs(x) < 200 && z < -1000) continue; 
 
       if (this.buildingModel) {
@@ -274,16 +304,69 @@ export class World {
     }
   }
 
-  public update(delta: number, playerCamera?: THREE.Camera, playerVelocity?: THREE.Vector3, c?: number) {
+  public update(delta: number, playerCamera?: THREE.Camera, playerVelocity?: THREE.Vector3, c?: number, cityTime?: number) {
     if (this.cars.length > 0) {
       for (const car of this.cars) {
-        car.position.addScaledVector(car.direction, car.speed * delta);
+        // Cars move by coordinate time to simulate the universe fast forwarding!
+        const dt = cityTime !== undefined && cityTime > 0 ? delta * (cityTime - this._lastCityTime) / delta : delta;
+        car.position.addScaledVector(car.direction, car.speed * dt);
         if (car.position.z > 1000) car.position.z = -1000;
         if (car.position.z < -1000) car.position.z = 1000;
         if (car.position.x > 1000) car.position.x = -1000;
         if (car.position.x < -1000) car.position.x = 1000;
       }
       this.updateCarsMatrix();
+    }
+
+    if (cityTime !== undefined && this.sunMesh && this.moonMesh && this.dirLight && this.ambientLight) {
+        this._lastCityTime = cityTime;
+        // 1 full cycle per 60 coordinate seconds
+        const omega = (Math.PI * 2) / 60.0;
+        const angle = cityTime * omega;
+        
+        // Sun rotates in the X/Y plane (sunrise in east, sunset in west)
+        const orbitRadius = 4000;
+        this.sunMesh.position.set(orbitRadius * Math.cos(angle), orbitRadius * Math.sin(angle), 0);
+        this.moonMesh.position.set(-orbitRadius * Math.cos(angle), -orbitRadius * Math.sin(angle), 0);
+        
+        // Update Light Position
+        this.dirLight.position.copy(this.sunMesh.position);
+        
+        // Lighting and Background Interpolation based on Sun altitude
+        const alt = Math.sin(angle);
+        const dayColor = new THREE.Color(0x87ceeb);
+        const twilightColor = new THREE.Color(0xff7f50);
+        const nightColor = new THREE.Color(0x050510);
+        
+        const bgColor = new THREE.Color();
+        let lightInt = 0;
+        
+        if (alt > 0.1) {
+            bgColor.copy(dayColor);
+            lightInt = 1.5;
+            this.dirLight.color.setHex(0xffffee);
+        } else if (alt > -0.1) {
+            // Twilight
+            const t = (alt + 0.1) / 0.2;
+            bgColor.lerpColors(nightColor, twilightColor, 0.5);
+            bgColor.lerpColors(bgColor, dayColor, t);
+            lightInt = t * 1.5;
+            this.dirLight.color.setHex(0xffaa55);
+        } else {
+            bgColor.copy(nightColor);
+            lightInt = 0;
+            // Moonlight from the other side
+            this.dirLight.position.copy(this.moonMesh.position);
+            this.dirLight.color.setHex(0x5577ff);
+            lightInt = 0.3;
+        }
+        
+        this.scene.background = bgColor;
+        if (this.scene.fog) {
+            this.scene.fog.color.copy(bgColor);
+        }
+        this.dirLight.intensity = lightInt;
+        this.ambientLight.intensity = alt > 0 ? 0.4 : 0.1;
     }
 
     // Update Video Doppler Playback Rate
@@ -307,13 +390,12 @@ export class World {
         const r_prime_dir = r_prime.clone().normalize();
         const doppler = 1.0 / (gamma * (1.0 - beta.dot(r_prime_dir) + 1e-6));
         
-        // Browsers restrict playbackRate typically between 0.0625 and 16.0
         const rate = Math.max(0.0625, Math.min(16.0, doppler));
-        
-        // Prevent setting playback rate identically if not needed (performance)
         if (Math.abs(this.videoElement.playbackRate - rate) > 0.01) {
              this.videoElement.playbackRate = rate;
         }
     }
   }
+
+  private _lastCityTime = 0;
 }

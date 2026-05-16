@@ -5,7 +5,6 @@ import { RelativityShader } from './RelativityShader';
 
 // Setup Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
 
 // Setup Camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -20,23 +19,6 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 document.getElementById('app')!.appendChild(renderer.domElement);
 
-// Setup Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
-
-// Add a visible sun
-const sunGeo = new THREE.SphereGeometry(200, 32, 32);
-const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
-sunMat.onBeforeCompile = (shader) => RelativityShader.inject(shader);
-const sun = new THREE.Mesh(sunGeo, sunMat);
-sun.position.set(2000, 1000, -2000);
-sun.frustumCulled = false; // Always render
-scene.add(sun);
-
-const sunLight = new THREE.PointLight(0xffffee, 10000000, 10000);
-sunLight.position.copy(sun.position);
-scene.add(sunLight);
-
 // Setup Game Objects
 const player = new Player(camera);
 const world = new World(scene);
@@ -50,15 +32,21 @@ window.addEventListener('resize', () => {
 
 // Render Loop
 const clock = new THREE.Clock();
+let cityTime = 0;
 
 function animate() {
   requestAnimationFrame(animate);
 
   const delta = clock.getDelta();
 
+  // Calculate Gamma for Coordinate Time
+  const betaSq = Math.min(player.velocity.lengthSq() / (player.speedOfLight * player.speedOfLight), 0.999999);
+  const gamma = 1.0 / Math.sqrt(1.0 - betaSq);
+  cityTime += delta * gamma;
+
   // Update Game Logic
   player.update(delta);
-  world.update(delta, camera, player.velocity, player.speedOfLight);
+  world.update(delta, camera, player.velocity, player.speedOfLight, cityTime);
 
   // Update Relativity Uniforms
   RelativityShader.uniforms.uVelocity.value.copy(player.velocity);
