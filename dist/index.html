@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relativity Visualization</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        color: white;
+        font-family: 'Inter', 'Roboto', sans-serif;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #ui-layer {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      }
+      .stat-row {
+        margin-bottom: 8px;
+        font-size: 1.1rem;
+      }
+      .stat-label {
+        font-weight: bold;
+        color: #8ab4f8;
+      }
+      .stat-value {
+        font-family: monospace;
+        font-size: 1.2rem;
+      }
+      .controls-hint {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px 20px;
+        border-radius: 20px;
+        backdrop-filter: blur(5px);
+        font-size: 0.9rem;
+        color: #ddd;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-Bx34Tu4u.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="ui-layer">
+      <div class="stat-row">
+        <span class="stat-label">Speed: </span>
+        <span class="stat-value" id="ui-speed">0.00c</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Lorentz Factor (γ): </span>
+        <span class="stat-value" id="ui-gamma">1.000</span>
+      </div>
+      <div class="stat-row" style="margin-top: 15px; font-size: 0.9rem; color: #aaa;">
+        <span class="stat-label">Speed of Light (c): </span>
+        <span class="stat-value">30 m/s</span>
+      </div>
+    </div>
+    <div class="controls-hint">
+      WASD to accelerate/move | Mouse to look around | E to lock/unlock pointer
+    </div>
+  </body>
+</html>
