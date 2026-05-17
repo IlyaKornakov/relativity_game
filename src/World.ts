@@ -293,7 +293,9 @@ export class World {
     const chatgptTransforms: THREE.Matrix4[] = [];
     const claudeTransforms: THREE.Matrix4[] = [];
 
-    for (let i = 0; i < 500; i++) {
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const numBuildings = isTouch ? 150 : 500;
+    for (let i = 0; i < numBuildings; i++) {
       const x = (Math.random() - 0.5) * 2000;
       const z = (Math.random() - 0.5) * 2000;
 

@@ -13,7 +13,8 @@ camera.position.y = 2;
 // Setup Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+renderer.setPixelRatio(isTouch ? 1.0 : Math.min(window.devicePixelRatio, 1.5));
 // Important for tone mapping
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
