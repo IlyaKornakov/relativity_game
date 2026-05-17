@@ -177,6 +177,93 @@ export class World {
     }
     this.scene.add(obeliskInstanced);
 
+    // Add Procedural Analog Clocks (Swiss style)
+    const clockPoleGeo = new THREE.CylinderGeometry(0.5, 0.5, 20);
+    const clockPoleMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    clockPoleMat.onBeforeCompile = (shader: any) => RelativityShader.inject(shader);
+
+    const clockFaceGeo = new THREE.PlaneGeometry(8, 8);
+    const clockFaceMat = new THREE.MeshBasicMaterial({ fog: false });
+    clockFaceMat.onBeforeCompile = (shader: any) => {
+        RelativityShader.inject(shader);
+        shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>
+            
+            vec2 uv = vUv - 0.5;
+            float r = length(uv);
+            float angle = atan(uv.x, uv.y);
+            
+            vec3 color = vec3(1.0); 
+            if (r > 0.48) discard; 
+            if (r > 0.45) { 
+                color = vec3(0.0); 
+            } else {
+                float distMin = abs(mod(angle + 3.14159/60.0, 6.2831853/60.0) - 3.14159/60.0);
+                if (r > 0.4 && r < 0.45 && distMin < 0.015) color = vec3(0.0);
+                
+                float distHr = abs(mod(angle + 3.14159/12.0, 6.2831853/12.0) - 3.14159/12.0);
+                if (r > 0.35 && r < 0.45 && distHr < 0.03) color = vec3(0.0);
+            }
+            
+            // Time is moving too slow to see hour hand move in a quick demo, 
+            // so we speed up the clock x10 just for visual fun, or keep it real.
+            // Let's keep it real: vEmitTime is exact seconds.
+            float secA = vEmitTime * 6.2831853 / 60.0;
+            float minA = vEmitTime * 6.2831853 / 3600.0;
+            float hrA  = vEmitTime * 6.2831853 / 43200.0;
+            
+            vec2 sUv = vec2(uv.x * cos(secA) - uv.y * sin(secA), uv.x * sin(secA) + uv.y * cos(secA));
+            vec2 mUv = vec2(uv.x * cos(minA) - uv.y * sin(minA), uv.x * sin(minA) + uv.y * cos(minA));
+            vec2 hUv = vec2(uv.x * cos(hrA) - uv.y * sin(hrA), uv.x * sin(hrA) + uv.y * cos(hrA));
+            
+            if (abs(hUv.x) < 0.025 && hUv.y > -0.05 && hUv.y < 0.25) color = vec3(0.0);
+            if (abs(mUv.x) < 0.015 && mUv.y > -0.05 && mUv.y < 0.4) color = vec3(0.0);
+            
+            if (abs(sUv.x) < 0.005 && sUv.y > -0.1 && sUv.y < 0.35) color = vec3(1.0, 0.0, 0.0);
+            if (length(sUv - vec2(0.0, 0.28)) < 0.04) color = vec3(1.0, 0.0, 0.0);
+            
+            if (r < 0.03) color = vec3(0.0);
+            
+            diffuseColor.rgb = color;
+            `
+        );
+    };
+
+    const clockPoleTransforms: THREE.Matrix4[] = [];
+    const clockFaceTransforms: THREE.Matrix4[] = [];
+    
+    for (let z = -2000; z <= 2000; z += 200) {
+        if (Math.abs(z) < 50) continue; // Skip intersection
+        for (const x of [-15, 15]) {
+            const mPole = new THREE.Matrix4();
+            mPole.setPosition(x, 10, z);
+            clockPoleTransforms.push(mPole);
+            
+            // Face pointing +Z
+            const mFace1 = new THREE.Matrix4();
+            mFace1.makeRotationY(0);
+            mFace1.setPosition(x, 20, z + 0.55);
+            clockFaceTransforms.push(mFace1);
+            
+            // Face pointing -Z
+            const mFace2 = new THREE.Matrix4();
+            mFace2.makeRotationY(Math.PI);
+            mFace2.setPosition(x, 20, z - 0.55);
+            clockFaceTransforms.push(mFace2);
+        }
+    }
+
+    const clockPoleInstanced = new THREE.InstancedMesh(clockPoleGeo, clockPoleMat, clockPoleTransforms.length);
+    clockPoleInstanced.frustumCulled = false;
+    for (let i = 0; i < clockPoleTransforms.length; i++) clockPoleInstanced.setMatrixAt(i, clockPoleTransforms[i]);
+    this.scene.add(clockPoleInstanced);
+
+    const clockFaceInstanced = new THREE.InstancedMesh(clockFaceGeo, clockFaceMat, clockFaceTransforms.length);
+    clockFaceInstanced.frustumCulled = false;
+    for (let i = 0; i < clockFaceTransforms.length; i++) clockFaceInstanced.setMatrixAt(i, clockFaceTransforms[i]);
+    this.scene.add(clockFaceInstanced);
+
     // Add Huge Animated Video Billboard
     this.videoElement = document.createElement('video');
     this.videoElement.src = import.meta.env.BASE_URL + 'textures/video.mp4';
