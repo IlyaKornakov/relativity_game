@@ -3,17 +3,21 @@ import * as THREE from 'three';
 export const RelativityShader = {
   uniforms: {
     uVelocity: { value: new THREE.Vector3(0, 0, 0) },
-    uSpeedOfLight: { value: 30.0 }
+    uSpeedOfLight: { value: 30.0 },
+    uCityTime: { value: 0.0 }
   },
 
   inject: function (shader: any) {
     shader.uniforms.uVelocity = this.uniforms.uVelocity;
     shader.uniforms.uSpeedOfLight = this.uniforms.uSpeedOfLight;
+    shader.uniforms.uCityTime = this.uniforms.uCityTime;
 
     shader.vertexShader = `
       uniform vec3 uVelocity;
       uniform float uSpeedOfLight;
+      uniform float uCityTime;
       varying float vDoppler;
+      varying float vEmitTime;
       #ifdef USE_INSTANCING
         attribute vec3 instanceVelocity;
       #endif
@@ -54,6 +58,7 @@ export const RelativityShader = {
       }
 
       float r_len = length(r);
+      vEmitTime = uCityTime - r_len / uSpeedOfLight;
       
       vec3 beta = uVelocity / uSpeedOfLight;
       float b2 = dot(beta, beta);
@@ -88,6 +93,7 @@ export const RelativityShader = {
 
     shader.fragmentShader = `
       varying float vDoppler;
+      varying float vEmitTime;
       ${shader.fragmentShader}
     `;
 

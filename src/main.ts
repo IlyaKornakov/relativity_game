@@ -51,6 +51,7 @@ function animate() {
   // Update Relativity Uniforms
   RelativityShader.uniforms.uVelocity.value.copy(player.velocity);
   RelativityShader.uniforms.uSpeedOfLight.value = player.speedOfLight;
+  RelativityShader.uniforms.uCityTime.value = cityTime;
 
   // Render
   renderer.render(scene, camera);

@@ -139,6 +139,44 @@ export class World {
     street2.frustumCulled = false;
     this.scene.add(street2);
 
+    // Add Simultaneity Beacons (Obelisks)
+    const obeliskGeo = new THREE.BoxGeometry(10, 150, 10);
+    const obeliskMat = new THREE.MeshBasicMaterial({ fog: false });
+    
+    obeliskMat.onBeforeCompile = (shader: any) => {
+        RelativityShader.inject(shader);
+        shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#include <color_fragment>
+            float cycle = mod(vEmitTime, 30.0);
+            if (cycle < 10.0) {
+                diffuseColor.rgb = vec3(1.0, 0.0, 0.0); // Red
+            } else if (cycle < 20.0) {
+                diffuseColor.rgb = vec3(1.0, 1.0, 0.0); // Yellow
+            } else {
+                diffuseColor.rgb = vec3(0.0, 1.0, 0.0); // Green
+            }
+            `
+        );
+    };
+
+    const obeliskTransforms: THREE.Matrix4[] = [];
+    const zs = [-1500, -1000, -500, 500, 1000, 1500];
+    for (const z of zs) {
+        for (const x of [-40, 40]) {
+            const m = new THREE.Matrix4();
+            m.setPosition(x, 75, z);
+            obeliskTransforms.push(m);
+        }
+    }
+    
+    const obeliskInstanced = new THREE.InstancedMesh(obeliskGeo, obeliskMat, obeliskTransforms.length);
+    obeliskInstanced.frustumCulled = false;
+    for (let i = 0; i < obeliskTransforms.length; i++) {
+        obeliskInstanced.setMatrixAt(i, obeliskTransforms[i]);
+    }
+    this.scene.add(obeliskInstanced);
+
     // Add Huge Animated Video Billboard
     this.videoElement = document.createElement('video');
     this.videoElement.src = import.meta.env.BASE_URL + 'textures/video.mp4';
