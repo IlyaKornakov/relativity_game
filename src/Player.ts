@@ -17,6 +17,13 @@ export class Player {
   
   private isLocked = false;
 
+  // Touch State
+  private leftTouchId: number | null = null;
+  private rightTouchId: number | null = null;
+  private leftTouchStartY: number = 0;
+  private lastRightTouchX: number = 0;
+  private lastRightTouchY: number = 0;
+
   constructor(camera: THREE.PerspectiveCamera) {
     this.camera = camera;
     
@@ -43,11 +50,118 @@ export class Player {
         this.velocity.y = 0;
       }
     });
+    
     document.body.addEventListener('click', () => {
-      if (!this.isLocked) {
+      // Don't pointer lock on mobile devices
+      if (!this.isLocked && !('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
         document.body.requestPointerLock();
       }
     });
+
+    // Mobile specific setup
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouch) {
+        const desktopHint = document.getElementById('desktop-hint');
+        if (desktopHint) desktopHint.style.display = 'none';
+        
+        const mobileControls = document.getElementById('mobile-controls');
+        if (mobileControls) mobileControls.style.display = 'flex';
+        
+        this.setupTouchControls();
+    }
+  }
+
+  private setupTouchControls() {
+    document.addEventListener('touchstart', this.onTouchStart, { passive: false });
+    document.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    document.addEventListener('touchend', this.onTouchEnd);
+    document.addEventListener('touchcancel', this.onTouchEnd);
+
+    const btnBrake = document.getElementById('btn-brake');
+    const btnFly = document.getElementById('btn-fly');
+    const btnGround = document.getElementById('btn-ground');
+
+    if (btnBrake) {
+        btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); this.brake = true; });
+        btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); this.brake = false; });
+    }
+    if (btnFly) {
+        btnFly.addEventListener('touchstart', (e) => { e.preventDefault(); this.lmbDown = true; });
+        btnFly.addEventListener('touchend', (e) => { e.preventDefault(); this.lmbDown = false; });
+    }
+    if (btnGround) {
+        btnGround.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            this.camera.position.y = 2.0; 
+            this.velocity.y = 0; 
+        });
+    }
+  }
+
+  private onTouchStart = (e: TouchEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.clientX < window.innerWidth / 2) {
+            if (this.leftTouchId === null) {
+                this.leftTouchId = touch.identifier;
+                this.leftTouchStartY = touch.clientY;
+            }
+        } else {
+            if (this.rightTouchId === null) {
+                this.rightTouchId = touch.identifier;
+                this.lastRightTouchX = touch.clientX;
+                this.lastRightTouchY = touch.clientY;
+            }
+        }
+    }
+  }
+
+  private onTouchMove = (e: TouchEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    if (e.cancelable) e.preventDefault(); // Prevent scrolling
+
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === this.leftTouchId) {
+            const deltaY = touch.clientY - this.leftTouchStartY;
+            if (deltaY < -30) {
+                this.moveForward = true;
+                this.moveBackward = false;
+            } else if (deltaY > 30) {
+                this.moveForward = false;
+                this.moveBackward = true;
+            } else {
+                this.moveForward = false;
+                this.moveBackward = false;
+            }
+        } else if (touch.identifier === this.rightTouchId) {
+            const deltaX = touch.clientX - this.lastRightTouchX;
+            const deltaY = touch.clientY - this.lastRightTouchY;
+            
+            this.euler.y -= deltaX * 0.005;
+            this.euler.x -= deltaY * 0.005;
+            this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
+            this.camera.quaternion.setFromEuler(this.euler);
+            
+            this.lastRightTouchX = touch.clientX;
+            this.lastRightTouchY = touch.clientY;
+        }
+    }
+  }
+
+  private onTouchEnd = (e: TouchEvent) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === this.leftTouchId) {
+            this.leftTouchId = null;
+            this.moveForward = false;
+            this.moveBackward = false;
+        } else if (touch.identifier === this.rightTouchId) {
+            this.rightTouchId = null;
+        }
+    }
   }
 
   private onPointerlockChange = () => {
@@ -76,8 +190,9 @@ export class Player {
     const movementX = event.movementX || 0;
     const movementY = event.movementY || 0;
 
-    this.euler.y -= movementX * 0.002;
-    this.euler.x -= movementY * 0.002;
+    // Increased mouse sensitivity from 0.002 to 0.005
+    this.euler.y -= movementX * 0.005;
+    this.euler.x -= movementY * 0.005;
 
     // Constrain pitch
     this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));

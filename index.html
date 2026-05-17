@@ -71,8 +71,13 @@
         <span class="stat-value">30 m/s</span>
       </div>
     </div>
-    <div class="controls-hint">
+    <div id="desktop-hint" class="controls-hint">
       W/S to accelerate/reverse | Space to brake | Hold LMB to fly | Shift to reset height | E to lock/unlock
+    </div>
+    <div id="mobile-controls" style="display: none; position: absolute; bottom: 20px; width: 100%; justify-content: space-around; pointer-events: none;">
+       <button id="btn-brake" style="pointer-events: auto; padding: 15px 30px; font-size: 1.2rem; border-radius: 10px; background: rgba(255,0,0,0.5); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: bold; touch-action: manipulation;">BRAKE</button>
+       <button id="btn-fly" style="pointer-events: auto; padding: 15px 30px; font-size: 1.2rem; border-radius: 10px; background: rgba(0,0,255,0.5); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: bold; touch-action: manipulation;">FLY</button>
+       <button id="btn-ground" style="pointer-events: auto; padding: 15px 30px; font-size: 1.2rem; border-radius: 10px; background: rgba(0,255,0,0.5); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: bold; touch-action: manipulation;">GROUND</button>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
